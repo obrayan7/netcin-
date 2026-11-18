@@ -1,0 +1,179 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TitleType {
+  MOVIE
+  SERIES
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+// Une "rangée" de la page d'accueil (ex : "Thrillers", "Nouveautés")
+model Category {
+  id     String  @id @default(cuid())
+  name   String
+  order  Int     @default(0)
+  titles Title[]
+}
+
+model Title {
+  id          String     @id @default(cuid())
+  type        TitleType
+  name        String
+  synopsis    String     @default("")
+  year        Int?
+  ageRating   String     @default("")
+  posterUrl   String     @default("")
+  backdropUrl String     @default("")
+  // Films uniquement
+  videoUrl    String     @default("")
+  durationMin Int?
+  featured    Boolean    @default(false)
+  published   Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  // Fiche détaillée
+  top10Rank     Int?       // 1 à 10 : place dans la rangée « Top 10 »
+  cast          String     @default("")   // acteurs, séparés par des virgules
+  genres        String     @default("")   // genres, séparés par des virgules
+  mood          String     @default("")   // « Ce titre est : » (ex : Suspense, Sombre)
+  languages     String     @default("")   // langues audio affichées, séparées par des virgules
+  lastEpisodeAt DateTime?                 // dernier épisode ajouté (badge « Nouvel épisode »)
+  categories  Category[]
+  seasons     Season[]
+  myListItems MyListItem[]
+  likes       Like[]
+  progress    WatchProgress[]
+}
+
+model Season {
+  id       String    @id @default(cuid())
+  titleId  String
+  title    Title     @relation(fields: [titleId], references: [id], onDelete: Cascade)
+  number   Int
+  episodes Episode[]
+
+  @@unique([titleId, number])
+}
+
+model Episode {
+  id          String @id @default(cuid())
+  seasonId    String
+  season      Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  number      Int
+  name        String
+  synopsis    String @default("")
+  durationMin Int?
+  thumbUrl    String @default("")
+  videoUrl    String @default("")
+
+  @@unique([seasonId, number])
+}
+
+// ---------- Spectateurs (comptes du site public) ----------
+
+model Viewer {
+  id           String          @id @default(cuid())
+  email        String          @unique
+  name         String          @default("")
+  passwordHash String
+  createdAt    DateTime        @default(now())
+  myListItems  MyListItem[]
+  likes        Like[]
+  progress     WatchProgress[]
+  payments     Payment[]
+  subscription Subscription?
+}
+
+model MyListItem {
+  id        String   @id @default(cuid())
+  viewerId  String
+  viewer    Viewer   @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+  titleId   String
+  title     Title    @relation(fields: [titleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([viewerId, titleId])
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  viewerId  String
+  viewer    Viewer   @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+  titleId   String
+  title     Title    @relation(fields: [titleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([viewerId, titleId])
+}
+
+// Reprise de lecture : une ligne par épisode (episodeId vide pour un film)
+model WatchProgress {
+  id        String   @id @default(cuid())
+  viewerId  String
+  viewer    Viewer   @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+  titleId   String
+  title     Title    @relation(fields: [titleId], references: [id], onDelete: Cascade)
+  episodeId String   @default("")
+  position  Int      // secondes
+  duration  Int      // secondes
+  updatedAt DateTime @updatedAt
+
+  @@unique([viewerId, titleId, episodeId])
+  @@index([viewerId, updatedAt])
+}
+
+// ---------- Abonnement ----------
+
+// Une seule ligne (id = 1), modifiable depuis l'espace admin.
+model SiteSettings {
+  id                 Int      @id @default(1)
+  paidMode           Boolean  @default(false) // false = tout gratuit
+  priceAmount        Int      @default(750)   // prix par période, en unités entières de la devise
+  currency           String   @default("XOF") // F CFA
+  freePercent        Int      @default(50)    // % d'épisodes d'une série visibles sans abonnement
+  periodDays         Int      @default(30)    // durée d'un abonnement payé
+  lockMovies         Boolean  @default(false) // true : les films exigent aussi l'abonnement
+  manualInstructions String   @default("")    // consignes de paiement manuel (Wave, Orange Money…)
+  updatedAt          DateTime @updatedAt
+}
+
+// Abonnement actif d'un spectateur (prolongé à chaque paiement validé)
+model Subscription {
+  id        String   @id @default(cuid())
+  viewerId  String   @unique
+  viewer    Viewer   @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  updatedAt DateTime @updatedAt
+}
+
+// Une tentative de paiement. L'id sert de transaction_id chez le prestataire.
+model Payment {
+  id        String    @id @default(cuid())
+  viewerId  String
+  viewer    Viewer    @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+  amount    Int
+  currency  String
+  days      Int       // durée accordée si le paiement est validé
+  provider  String    // "fedapay" | "manual"
+  providerRef String  @default("")        // id de la transaction chez FedaPay
+  status    String    @default("PENDING") // PENDING | PAID | FAILED
+  note      String    @default("")        // référence/ n° de transaction saisi par le client (manuel)
+  createdAt DateTime  @default(now())
+  paidAt    DateTime?
+
+  @@index([viewerId, createdAt])
+  @@index([status, createdAt])
+}

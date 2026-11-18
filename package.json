@@ -1,0 +1,14 @@
+{
+  "name": "netcine",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "postinstall": "npm run generate -w @netcine/db",
+    "dev:web": "npm run dev -w @netcine/web",
+    "dev:admin": "npm run dev -w @netcine/admin",
+    "build:web": "npm run build -w @netcine/web",
+    "build:admin": "npm run build -w @netcine/admin",
+    "db:push": "npm run push -w @netcine/db",
+    "db:seed": "npm run seed -w @netcine/db"
+  }
+}
