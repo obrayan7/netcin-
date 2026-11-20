@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@netcine/db";
 import { requireAdmin } from "@/lib/auth";
@@ -41,10 +42,14 @@ export default async function EditTitle({
       {saved && <p className="ok">Enregistré ✔</p>}
       <TitleForm title={title} categories={categories} />
 
-      {title.type === "SERIES" && (
+      {title.type !== "MOVIE" && (
         <section>
           <h2>Saisons & épisodes</h2>
 
+          <p>
+            <Link className="btn" href={`/seasons/new?titleId=${title.id}`}>+ Ajouter une saison depuis un dossier</Link>
+          </p>
+          <p className="meta">Ou créez une saison vide et ajoutez les épisodes un par un :</p>
           <form action={addSeason.bind(null, title.id)} className="inline-form">
             <input name="number" type="number" min={1} placeholder="N° de saison" required />
             <button className="btn">+ Ajouter une saison</button>

@@ -9,6 +9,7 @@ export default function Footer() {
       <nav aria-label="Pied de page">
         <Link href="/">Accueil</Link>
         <Link href="/browse/series">Séries</Link>
+        <Link href="/browse/anime">Animés</Link>
         <Link href="/browse/movies">Films</Link>
         <Link href="/my-list">Ma liste</Link>
       </nav>

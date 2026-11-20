@@ -114,7 +114,16 @@ label { font-size: .85rem; color: var(--muted); display: block; margin-bottom: .
 .episodes li a { display: grid; grid-template-columns: 2rem 170px 1fr; gap: 1.2rem; align-items: center; padding: .9rem; border-bottom: 1px solid var(--line); border-radius: 4px; transition: background .15s; }
 .episodes li a:hover { background: var(--panel); }
 .episodes .num { font-family: var(--display); font-size: 1.6rem; color: var(--muted); text-align: center; }
-.episodes img, .episodes .ph { width: 170px; aspect-ratio: 16/9; object-fit: cover; border-radius: 3px; background: var(--panel); }
+.episodes img, .episodes .ph { width: 170px; aspect-ratio: 16/9; object-fit: cover; border-radius: 3px; background: var(--panel); display: block; }
+.ep-thumb { position: relative; width: 170px; }
+.ep-play { position: absolute; inset: 0; display: grid; place-items: center; font-size: 1.3rem; color: #fff; background: #0009; border-radius: 3px; opacity: 0; transition: opacity .15s; }
+.episodes li a:hover .ep-play, .episodes li a:focus-visible .ep-play { opacity: 1; }
+.ep-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: #ffffff40; border-radius: 0 0 3px 3px; overflow: hidden; }
+.ep-bar b { display: block; height: 100%; background: var(--red); }
+.ep-head { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; }
+.ep-dur { color: var(--muted); font-size: .9rem; white-space: nowrap; }
+.more-eps { display: block; margin: .8rem auto 0; background: none; border: 0; border-top: 1px solid var(--line); width: 100%; padding: .8rem; color: var(--muted); font: 600 .9rem var(--sans); cursor: pointer; }
+.more-eps:hover { color: var(--text); }
 .episodes p { color: var(--muted); margin: .3rem 0 0; font-size: .9rem; max-width: 62ch; }
 .watch { background: #000; min-height: 100vh; }
 .watch-bar { display: flex; gap: 1rem; padding: .8rem 4%; align-items: center; }
@@ -130,7 +139,7 @@ label { font-size: .85rem; color: var(--muted); display: block; margin-bottom: .
 @media (max-width: 700px) {
   .grid2, .grid3 { grid-template-columns: 1fr; }
   .navbar { gap: .9rem; flex-wrap: wrap; } .wordmark { font-size: 1.15rem; }
-  .episodes li a { grid-template-columns: 1.5rem 104px 1fr; gap: .7rem; } .episodes img, .episodes .ph { width: 104px; }
+  .episodes li a { grid-template-columns: 1.5rem 104px 1fr; gap: .7rem; } .episodes img, .episodes .ph, .ep-thumb { width: 104px; }
   .tc { width: 124px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -228,7 +237,7 @@ label { font-size: .85rem; color: var(--muted); display: block; margin-bottom: .
 
 /* ---------- Lecteur ---------- */
 .player-wrap { position: relative; }
-.audio-pick { position: absolute; top: 14px; right: 4%; z-index: 3; display: flex; gap: .5rem; align-items: center; background: #000a; padding: .35rem .6rem; border-radius: 4px; color: #fff; font-size: .85rem; }
+.audio-pick { position: absolute; top: 14px; right: 112px; z-index: 3; display: flex; gap: .5rem; align-items: center; background: #000a; padding: .35rem .6rem; border-radius: 4px; color: #fff; font-size: .85rem; }
 .audio-pick select { width: auto; padding: .2rem .4rem; }
 
 /* ---------- Squelettes de chargement ---------- */
@@ -267,3 +276,20 @@ label { font-size: .85rem; color: var(--muted); display: block; margin-bottom: .
 .sub-box textarea, .sub-box input { width: 100%; }
 .sub-error { color: #ff6b6b; }
 .sub-ok { color: #7ccf9b; }
+
+/* ---------- Lecteur : fermer, plein écran, épisode suivant ---------- */
+.player-wrap:fullscreen { background: #000; display: grid; place-items: center; }
+.player-wrap:fullscreen .player { max-height: 100vh; height: 100%; }
+.player-top { position: absolute; top: 14px; right: 14px; z-index: 4; display: flex; gap: .5rem; }
+.pbtn { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; border: 1px solid #ffffff55; background: #000b; color: #fff; font-size: 1.15rem; cursor: pointer; backdrop-filter: blur(6px); transition: background .15s, transform .15s; }
+.pbtn:hover, .pbtn:focus-visible { background: var(--red); transform: scale(1.06); }
+.next-btn { position: absolute; right: 16px; bottom: 76px; z-index: 4; padding: .65rem 1.2rem; border-radius: 3px; border: 1px solid #ffffff66; background: #000c; color: #fff; font: 700 .95rem var(--sans); backdrop-filter: blur(6px); transition: background .15s, transform .15s; }
+.next-btn:hover, .next-btn:focus-visible, .next-btn.hot { background: var(--red); border-color: var(--red); }
+.next-btn.hot { animation: nextpulse 1.4s ease-in-out infinite; }
+@keyframes nextpulse { 50% { box-shadow: 0 0 0 8px #f8000030; } }
+/* boutons masqués pendant la lecture, sauf focus clavier */
+.player-wrap .player-top, .player-wrap .next-btn, .player-wrap .audio-pick { opacity: 0; pointer-events: none; transition: opacity .25s; }
+.player-wrap.ui .player-top, .player-wrap.ui .next-btn, .player-wrap.ui .audio-pick,
+.player-wrap .player-top:focus-within, .player-wrap .next-btn:focus-visible { opacity: 1; pointer-events: auto; }
+@media (prefers-reduced-motion: reduce) { .next-btn.hot { animation: none; } }
+@media (max-width: 640px) { .next-btn { bottom: 64px; right: 10px; padding: .5rem .9rem; } .pbtn { width: 38px; height: 38px; } .audio-pick { right: 100px; } }

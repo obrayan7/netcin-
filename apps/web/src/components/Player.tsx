@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { saveProgress } from "@/app/actions";
 
@@ -12,6 +13,10 @@ type Props = {
   /** Position de reprise en secondes (0 = début). */
   startAt: number;
   loggedIn: boolean;
+  /** Page où revenir en fermant le lecteur (fiche du titre). */
+  closeHref: string;
+  /** Épisode suivant (absent pour un film ou le dernier épisode). */
+  nextHref?: string;
 };
 
 type HlsLike = { destroy: () => void; audioTrack: number };
@@ -21,7 +26,11 @@ type HlsLike = { destroy: () => void; audioTrack: number };
  * - reprend à la dernière position et l'enregistre toutes les 10 s (si connecté) ;
  * - propose un choix de langue audio quand le flux HLS contient plusieurs pistes.
  */
-export default function Player({ src, poster, titleId, episodeId, startAt, loggedIn }: Props) {
+export default function Player({ src, poster, titleId, episodeId, startAt, loggedIn, closeHref, nextHref }: Props) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showUi, setShowUi] = useState(true);
+  const [ended, setEnded] = useState(false);
   const ref = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<HlsLike | null>(null);
   const lastSave = useRef(0);
@@ -71,19 +80,69 @@ export default function Player({ src, poster, titleId, episodeId, startAt, logge
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src, startAt]);
 
+  // Boutons visibles au mouvement de la souris / au toucher, masqués après 3 s pendant la lecture
+  const wake = () => {
+    setShowUi(true);
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    hideTimer.current = setTimeout(() => {
+      if (ref.current && !ref.current.paused) setShowUi(false);
+    }, 3000);
+  };
+  useEffect(() => () => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+  }, []);
+
+  // Plein écran sur le conteneur (et non sur la vidéo seule) pour garder les boutons × et Suivant
+  const toggleFullscreen = () => {
+    const el = wrapRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void el.requestFullscreen?.();
+  };
+
+  const ui = showUi || ended ? "ui on" : "ui";
+
   return (
-    <div className="player-wrap">
+    <div
+      ref={wrapRef}
+      className={`player-wrap ${ui}`}
+      onMouseMove={wake}
+      onTouchStart={wake}
+      onKeyDown={wake}
+    >
       <video
         ref={ref}
         className="player"
         controls
         autoPlay
         playsInline
+        controlsList="nofullscreen"
         poster={poster}
         onTimeUpdate={() => Date.now() - lastSave.current > 10_000 && save()}
-        onPause={save}
-        onEnded={save}
+        onPause={() => {
+          save();
+          setShowUi(true);
+        }}
+        onPlay={() => {
+          setEnded(false);
+          wake();
+        }}
+        onEnded={() => {
+          save();
+          setEnded(true);
+        }}
       />
+
+      <div className="player-top">
+        <button type="button" className="pbtn" onClick={toggleFullscreen} aria-label="Plein écran" title="Plein écran">⛶</button>
+        <Link href={closeHref} className="pbtn close" aria-label="Fermer le lecteur" title="Fermer">✕</Link>
+      </div>
+
+      {nextHref && (
+        <Link href={nextHref} className={ended ? "next-btn hot" : "next-btn"} aria-label="Épisode suivant">
+          Suivant ⏭
+        </Link>
+      )}
       {tracks.length > 1 && (
         <label className="audio-pick">
           Audio

@@ -1,5 +1,7 @@
 import type { Category, Title } from "@netcine/db";
+import Link from "next/link";
 import UploadField from "@/components/UploadField";
+import { InlineSeasonImport } from "@/components/SeasonImport";
 import { saveTitle } from "../actions";
 
 type Props = { title?: Title & { categories: Category[] }; categories: Category[] };
@@ -16,6 +18,7 @@ export default function TitleForm({ title, categories }: Props) {
           <select name="type" defaultValue={title?.type ?? "MOVIE"}>
             <option value="MOVIE">Film</option>
             <option value="SERIES">Série</option>
+            <option value="ANIME">Animé</option>
           </select>
         </div>
         <div className="field">
@@ -47,7 +50,7 @@ export default function TitleForm({ title, categories }: Props) {
 
       <UploadField name="posterUrl" label="Affiche (portrait/miniature)" accept="image/*" folder="posters" defaultValue={title?.posterUrl} />
       <UploadField name="backdropUrl" label="Image de fond (bannière)" accept="image/*" folder="backdrops" defaultValue={title?.backdropUrl} />
-      <UploadField name="videoUrl" label="Vidéo du film (MP4 ou .m3u8) — laisser vide pour une série" accept="video/*,.m3u8" folder="videos" defaultValue={title?.videoUrl} />
+      <UploadField name="videoUrl" label="Vidéo du film (MP4 ou .m3u8) — laisser vide pour une série ou un animé" accept="video/*,.m3u8" folder="videos" defaultValue={title?.videoUrl} />
 
       <div className="field">
         <label>Rangées de l'accueil</label>
@@ -58,6 +61,16 @@ export default function TitleForm({ title, categories }: Props) {
           {categories.length === 0 && <em>Créez d'abord des catégories.</em>}
         </div>
       </div>
+
+      {title ? (
+        title.type !== "MOVIE" && (
+          <p>
+            <Link className="btn ghost" href={`/seasons/new?titleId=${title.id}`}>+ Importer une saison (dossier)</Link>
+          </p>
+        )
+      ) : (
+        <InlineSeasonImport />
+      )}
 
       <div className="checks">
         <label><input type="checkbox" name="published" defaultChecked={title?.published ?? true} /> Publié</label>

@@ -73,3 +73,10 @@ summary { cursor: pointer; font-weight: 600; }
 .login .brand { margin-bottom: 1rem; }
 @media (max-width: 700px) { .grid2, .grid3 { grid-template-columns: 1fr; } .admin-nav { flex-wrap: wrap; } }
 .check { display: flex; align-items: center; gap: .5rem; color: var(--text); font-weight: 600; }
+
+/* ---------- Import de saison ---------- */
+.season-import input[type="number"].bad { border-color: var(--danger); }
+.season-import .pick { display: flex; gap: .6rem; flex-wrap: wrap; }
+.season-import .table input { width: 100%; }
+.warn { color: #ffb454; }
+fieldset.card legend { padding: 0 .5rem; font-weight: 700; }

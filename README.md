@@ -79,6 +79,20 @@ Parcours de test : connexion sur `localhost:3001` → *Catégories* (vérifier l
 
 Si Vercel affiche « Query engine library not found » (Prisma en monorepo) : ajouter la dépendance `@prisma/nextjs-monorepo-workaround-plugin` et l'activer dans `next.config.mjs`, ou relancer le déploiement en vidant le cache de build.
 
+## Séries : importer une saison depuis un dossier
+
+Dans l'admin, la page d'accueil a deux boutons :
+- **Ajouter un nouveau (film, série ou animé)** : en choisissant « Série » ou « Animé », une zone « Importer une saison » apparaît. On indique le numéro de la saison et on choisit le dossier qui contient tous les épisodes.
+- **Ajouter une saison à une série existante** : on choisit la série déjà publiée, le numéro (la saison suivante est proposée), puis le dossier.
+
+Le dossier est trié dans l'ordre naturel (Épisode 2 avant Épisode 10). Le numéro de chaque épisode est lu dans le nom du fichier (S01E03, E03, Episode 3, « 03 - Titre »…) ; sinon les épisodes sont numérotés 1, 2, 3… dans l'ordre alphabétique. Numéros et titres restent modifiables avant l'envoi. Les vidéos partent directement vers le bucket (2 à la fois, avec barre de progression), puis un clic sur « Créer » / « Ajouter la saison » enregistre tous les épisodes. Si la saison existe déjà, les épisodes de même numéro sont remplacés. Format conseillé : MP4 (H.264) ; les .mkv/.avi ne se lisent pas dans un navigateur.
+
+Sur le site, la fiche d'une série affiche « Épisodes » avec une liste déroulante des saisons, puis les épisodes de la saison choisie (10 d'abord, « Afficher tout » pour le reste). Les animés ont leur page « Animés ». Après mise à jour : `npm run db:push` (nouveau type « Animé »).
+
+## Lecteur
+
+Pendant la lecture : bouton **✕** (en haut à droite) pour fermer le lecteur et revenir à la fiche, bouton **Suivant** (en bas à droite) pour passer à l'épisode suivant, y compris d'une saison à la suivante. Les boutons apparaissent au mouvement de la souris ou au toucher et se masquent après 3 s. Le plein écran passe par le bouton ⛶ du lecteur pour conserver ces boutons.
+
 ## Abonnement (mode payant)
 
 Depuis l'admin, page **Abonnement** :

@@ -13,6 +13,51 @@ const int = (f: FormData, k: string) => {
 };
 const refresh = () => revalidatePath("/", "layout");
 
+type EpisodeIn = { number: number; name: string; videoUrl: string; durationMin: number | null };
+
+/** Lit le JSON envoyé par l'import de saison et ne garde que des épisodes valides. */
+function parseEpisodes(raw: string): EpisodeIn[] {
+  let list: unknown;
+  try {
+    list = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(list)) return [];
+  const out = new Map<number, EpisodeIn>();
+  for (const e of list.slice(0, 500)) {
+    const number = Number(e?.number);
+    const videoUrl = String(e?.videoUrl ?? "");
+    if (!Number.isInteger(number) || number < 1 || !/^https?:\/\//.test(videoUrl)) continue;
+    const d = Number(e?.durationMin);
+    out.set(number, {
+      number,
+      videoUrl,
+      name: String(e?.name ?? "").trim().slice(0, 200) || `Épisode ${number}`,
+      durationMin: Number.isFinite(d) && d > 0 ? Math.round(d) : null,
+    });
+  }
+  return [...out.values()].sort((a, b) => a.number - b.number);
+}
+
+/** Crée la saison si besoin, puis ajoute les épisodes (même numéro = remplacé). */
+async function saveSeason(titleId: string, seasonNumber: number, episodes: EpisodeIn[]) {
+  const season = await db.season.upsert({
+    where: { titleId_number: { titleId, number: seasonNumber } },
+    update: {},
+    create: { titleId, number: seasonNumber },
+  });
+  for (const e of episodes) {
+    const data = { name: e.name, videoUrl: e.videoUrl, durationMin: e.durationMin };
+    await db.episode.upsert({
+      where: { seasonId_number: { seasonId: season.id, number: e.number } },
+      update: data,
+      create: { ...data, seasonId: season.id, number: e.number },
+    });
+  }
+  if (episodes.length) await db.title.update({ where: { id: titleId }, data: { lastEpisodeAt: new Date() } });
+}
+
 // ---------- Auth ----------
 
 // Limiteur très simple (mémoire du process) : 5 échecs / 15 min par email.
@@ -51,7 +96,7 @@ export async function saveTitle(formData: FormData) {
   if (!name) throw new Error("Le nom est requis");
 
   const data = {
-    type: str(formData, "type") === "SERIES" ? ("SERIES" as const) : ("MOVIE" as const),
+    type: (["SERIES", "ANIME"] as const).find((t) => t === str(formData, "type")) ?? ("MOVIE" as const),
     name,
     synopsis: str(formData, "synopsis"),
     year: int(formData, "year"),
@@ -72,13 +117,18 @@ export async function saveTitle(formData: FormData) {
     languages: str(formData, "languages"),
   };
   const categoryIds = formData.getAll("categoryIds").map(String);
+  // Série / animé : saison importée depuis un dossier (optionnel)
+  const seasonNumber = int(formData, "seasonNumber");
+  const episodes = data.type === "MOVIE" || !seasonNumber || seasonNumber < 1 ? [] : parseEpisodes(str(formData, "episodesJson"));
 
   if (id) {
     await db.title.update({ where: { id }, data: { ...data, categories: { set: categoryIds.map((c) => ({ id: c })) } } });
+    if (episodes.length) await saveSeason(id, seasonNumber!, episodes);
     refresh();
     redirect(`/titles/${id}?saved=1`);
   }
   const created = await db.title.create({ data: { ...data, categories: { connect: categoryIds.map((c) => ({ id: c })) } } });
+  if (episodes.length) await saveSeason(created.id, seasonNumber!, episodes);
   refresh();
   redirect(`/titles/${created.id}?saved=1`);
 }
@@ -103,6 +153,21 @@ export async function addSeason(titleId: string, formData: FormData) {
   });
   refresh();
   revalidatePath(`/titles/${titleId}`);
+}
+
+/** « Ajouter une saison à une série existante » : choisir la série, le numéro, le dossier. */
+export async function importSeason(formData: FormData) {
+  await requireAdmin();
+  const titleId = str(formData, "titleId");
+  const seasonNumber = int(formData, "seasonNumber");
+  const episodes = parseEpisodes(str(formData, "episodesJson"));
+  const title = titleId ? await db.title.findUnique({ where: { id: titleId } }) : null;
+  if (!title || title.type === "MOVIE") redirect("/seasons/new?error=title");
+  if (!seasonNumber || seasonNumber < 1) redirect(`/seasons/new?titleId=${titleId}&error=number`);
+  if (episodes.length === 0) redirect(`/seasons/new?titleId=${titleId}&error=empty`);
+  await saveSeason(titleId, seasonNumber, episodes);
+  refresh();
+  redirect(`/titles/${titleId}?saved=1`);
 }
 
 export async function deleteSeason(titleId: string, seasonId: string) {

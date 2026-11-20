@@ -11,7 +11,7 @@ export default async function TitleCard({ t, progress }: { t: CardTitle; progres
   const ctx = await getViewerCtx();
   const badge = badgeFor(t);
   const img = t.posterUrl || t.backdropUrl;
-  const length = t.type === "SERIES" ? `${t._count.seasons} saison${t._count.seasons > 1 ? "s" : ""}` : fmtDuration(t.durationMin);
+  const length = t.type !== "MOVIE" ? `${t._count.seasons} saison${t._count.seasons > 1 ? "s" : ""}` : fmtDuration(t.durationMin);
   const genres = splitList(t.genres).slice(0, 3).join(" • ");
 
   return (

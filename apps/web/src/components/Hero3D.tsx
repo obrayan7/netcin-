@@ -9,7 +9,7 @@ export type HeroItem = {
   synopsis: string;
   posterUrl: string;
   backdropUrl: string;
-  type: "MOVIE" | "SERIES";
+  type: "MOVIE" | "SERIES" | "ANIME";
   year: number | null;
   ageRating: string;
 };
@@ -146,7 +146,7 @@ export default function Hero3D({ items }: { items: HeroItem[] }) {
 
   const cur = ring[active];
   const bg = cur.backdropUrl || cur.posterUrl;
-  const meta = [cur.type === "SERIES" ? "Série" : "Film", cur.year, cur.ageRating].filter(Boolean);
+  const meta = [cur.type === "SERIES" ? "Série" : cur.type === "ANIME" ? "Animé" : "Film", cur.year, cur.ageRating].filter(Boolean);
 
   return (
     <section className="h3d">

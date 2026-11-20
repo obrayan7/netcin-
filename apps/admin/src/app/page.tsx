@@ -14,7 +14,10 @@ export default async function AdminHome() {
     <>
       <div className="row-between">
         <h1>Films & séries ({titles.length})</h1>
-        <Link className="btn" href="/titles/new">+ Ajouter un titre</Link>
+        <div className="inline-form">
+          <Link className="btn" href="/titles/new">+ Ajouter un nouveau (film, série ou animé)</Link>
+          <Link className="btn ghost" href="/seasons/new">+ Ajouter une saison à une série existante</Link>
+        </div>
       </div>
       <table className="table">
         <thead>
@@ -25,9 +28,9 @@ export default async function AdminHome() {
             <tr key={t.id}>
               <td>{t.posterUrl && <img src={t.posterUrl} alt="" className="thumb" />}</td>
               <td><Link href={`/titles/${t.id}`}>{t.name}</Link></td>
-              <td>{t.type === "MOVIE" ? "Film" : "Série"}</td>
+              <td>{t.type === "MOVIE" ? "Film" : t.type === "ANIME" ? "Animé" : "Série"}</td>
               <td>
-                {t.type === "SERIES"
+                {t.type !== "MOVIE"
                   ? `${t.seasons.length} saison(s), ${t.seasons.reduce((a, s) => a + s._count.episodes, 0)} épisode(s)`
                   : t.videoUrl ? "Vidéo OK" : "Vidéo manquante"}
               </td>

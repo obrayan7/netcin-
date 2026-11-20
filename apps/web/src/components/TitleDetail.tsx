@@ -30,13 +30,23 @@ export default async function TitleDetail({ id }: { id: string }) {
       })
     : [];
 
-  const isSeries = title.type === "SERIES";
+  const isSeries = title.type !== "MOVIE";
   const length = isSeries ? `${title.seasons.length} saison${title.seasons.length > 1 ? "s" : ""}` : fmtDuration(title.durationMin);
   const cast = splitList(title.cast);
   const genres = splitList(title.genres);
   const mood = splitList(title.mood);
   const langs = splitList(title.languages);
-  const gate = await getGate(await getViewerId(), isSeries ? title.seasons.flatMap((s) => s.episodes) : []);
+  const viewerId = await getViewerId();
+  // Progression par épisode + saison à ouvrir en premier (celle du dernier épisode regardé)
+  const progress: Record<string, number> = {};
+  let initialSeason: number | undefined;
+  if (viewerId && isSeries) {
+    const rows = await db.watchProgress.findMany({ where: { viewerId, titleId: title.id }, orderBy: { updatedAt: "desc" } });
+    for (const r of rows) if (r.episodeId && r.duration > 0) progress[r.episodeId] = Math.round((r.position / r.duration) * 100);
+    const last = rows.find((r) => r.episodeId);
+    if (last) initialSeason = title.seasons.find((s) => s.episodes.some((e) => e.id === last.episodeId))?.number;
+  }
+  const gate = await getGate(viewerId, isSeries ? title.seasons.flatMap((s) => s.episodes) : []);
   const showNotice = gate.settings.paidMode && !gate.subscribed && ((isSeries && gate.lockedIds.size > 0) || gate.movieLocked);
   const bg = title.backdropUrl || title.posterUrl;
 
@@ -93,6 +103,8 @@ export default async function TitleDetail({ id }: { id: string }) {
           <SeasonEpisodes
             titleId={title.id}
             lockedIds={[...gate.lockedIds]}
+            progress={progress}
+            initialSeason={initialSeason}
             seasons={title.seasons.map((s) => ({
               number: s.number,
               episodes: s.episodes.map((e) => ({

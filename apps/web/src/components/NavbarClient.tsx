@@ -12,6 +12,7 @@ type Props = { viewer: { initial: string; name: string } | null; news: NewsItem[
 const links = [
   { href: "/", label: "Accueil" },
   { href: "/browse/series", label: "Séries" },
+  { href: "/browse/anime", label: "Animés" },
   { href: "/browse/movies", label: "Films" },
   { href: "/my-list", label: "Ma liste" },
 ];

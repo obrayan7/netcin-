@@ -9,10 +9,10 @@ export const dynamic = "force-dynamic";
 
 export default async function Browse({ params }: { params: Promise<{ kind: string }> }) {
   const { kind } = await params;
-  if (kind !== "movies" && kind !== "series") notFound();
+  if (kind !== "movies" && kind !== "series" && kind !== "anime") notFound();
 
   const items = await db.title.findMany({
-    where: { published: true, type: kind === "movies" ? "MOVIE" : "SERIES" },
+    where: { published: true, type: kind === "movies" ? "MOVIE" : kind === "anime" ? "ANIME" : "SERIES" },
     orderBy: { createdAt: "desc" },
     include: withCount,
   });
@@ -20,7 +20,7 @@ export default async function Browse({ params }: { params: Promise<{ kind: strin
     <>
       <Navbar />
       <main className="page">
-        <h1>{kind === "movies" ? "Films" : "Séries"}</h1>
+        <h1>{kind === "movies" ? "Films" : kind === "anime" ? "Animés" : "Séries"}</h1>
         <Grid items={items} />
       </main>
       <Footer />

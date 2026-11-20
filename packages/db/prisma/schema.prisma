@@ -11,6 +11,7 @@ datasource db {
 enum TitleType {
   MOVIE
   SERIES
+  ANIME // se comporte comme une série (saisons + épisodes)
 }
 
 model AdminUser {

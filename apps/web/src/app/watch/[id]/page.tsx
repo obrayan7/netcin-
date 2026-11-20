@@ -38,7 +38,7 @@ export default async function Watch({
   });
   if (!title || !title.published) notFound();
 
-  const isSeries = title.type === "SERIES";
+  const isSeries = title.type !== "MOVIE";
   const flatAll = isSeries ? title.seasons.flatMap((s) => s.episodes) : [];
   const gate = await getGate(viewerId, flatAll);
   let locked = !isSeries && gate.movieLocked;
@@ -49,7 +49,7 @@ export default async function Watch({
   let episodeId = "";
   let next: { id: string; name: string } | undefined;
 
-  if (title.type === "SERIES") {
+  if (isSeries) {
     const flat = title.seasons.flatMap((s) => s.episodes.map((e) => ({ ...e, season: s.number })));
     let idx = flat.findIndex((e) => e.id === ep);
     if (idx < 0 && viewerId) {
@@ -106,11 +106,6 @@ export default async function Watch({
       <div className="watch-bar">
         <Link href={`/title/${title.id}`}>← Retour</Link>
         <span>{heading}</span>
-        {next && (
-          <Link href={`/watch/${title.id}?ep=${next.id}`} style={{ marginLeft: "auto" }}>
-            Épisode suivant →
-          </Link>
-        )}
       </div>
       <Player
         key={`${src}-${episodeId}`}
@@ -120,6 +115,8 @@ export default async function Watch({
         episodeId={episodeId}
         startAt={startAt}
         loggedIn={!!viewerId}
+        closeHref={`/title/${title.id}`}
+        nextHref={next ? `/watch/${title.id}?ep=${next.id}` : undefined}
       />
     </div>
   );
